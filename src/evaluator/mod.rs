@@ -745,6 +745,32 @@ identity(100);
     }
 
     #[test]
+    fn test_while_application() {
+        let tests = vec![
+            (
+                "let a = 0; while (a < 5) { let a = a + 1; }; a;",
+                Some(Object::Int(5)),
+            ),
+            (
+                "let a = 0; while (a < 5) { let a = a + 1; if (a == 2) { return 2; } }; a;",
+                Some(Object::Int(2)),
+            ),
+            (
+                "let a = 0; let b = 0; while (a < 5) { let a = a + 1; if (a == 2) { break; } let b = b + 1; }; b;",
+                Some(Object::Int(1)),
+            ),
+            (
+                "let a = 0; let b = 0; while (a < 5) { let a = a + 1; if (a == 2) { continue; } let b = b + 1; }; b;",
+                Some(Object::Int(4)),
+            ),
+        ];
+
+        for (input, expect) in tests {
+            assert_eq!(expect, eval(input));
+        }
+    }
+
+    #[test]
     fn test_closures() {
         let input = r#"
 let newAdder = fn(x) {
