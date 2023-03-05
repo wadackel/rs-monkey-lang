@@ -63,6 +63,10 @@ pub enum Expr {
         consequence: BlockStmt,
         alternative: Option<BlockStmt>,
     },
+    While {
+        cond: Box<Expr>,
+        consequence: BlockStmt,
+    },
     Func {
         params: Vec<Ident>,
         body: BlockStmt,
@@ -85,6 +89,8 @@ pub enum Literal {
 #[derive(PartialEq, Clone, Debug)]
 pub enum Stmt {
     Blank,
+    Break,
+    Continue,
     Let(Ident, Expr),
     Return(Expr),
     Expr(Expr),
