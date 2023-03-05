@@ -18,6 +18,8 @@ pub enum Object {
     Func(Vec<Ident>, BlockStmt, Rc<RefCell<Env>>),
     Builtin(i32, BuiltinFunc),
     Null,
+    BreakStatement,
+    ContinueStatement,
     ReturnValue(Box<Object>),
     Error(String),
 }
@@ -63,6 +65,8 @@ impl fmt::Display for Object {
             }
             Object::Builtin(_, _) => write!(f, "[builtin function]"),
             Object::Null => write!(f, "null"),
+            Object::BreakStatement => write!(f, "break statement"),
+            Object::ContinueStatement => write!(f, "continue statement"),
             Object::ReturnValue(ref value) => write!(f, "{}", value),
             Object::Error(ref value) => write!(f, "{}", value),
         }

@@ -161,6 +161,8 @@ impl<'a> Parser<'a> {
             Token::Let => self.parse_let_stmt(),
             Token::Return => self.parse_return_stmt(),
             Token::Blank => Some(Stmt::Blank),
+            Token::Break => self.parse_break_stmt(),
+            Token::Continue => self.parse_continue_stmt(),
             _ => self.parse_expr_stmt(),
         }
     }
@@ -209,6 +211,26 @@ impl<'a> Parser<'a> {
         Some(Stmt::Return(expr))
     }
 
+    fn parse_break_stmt(&mut self) -> Option<Stmt> {
+        self.bump();
+
+        if self.next_token_is(&Token::Semicolon) {
+            self.bump();
+        }
+
+        Some(Stmt::Break)
+    }
+
+    fn parse_continue_stmt(&mut self) -> Option<Stmt> {
+        self.bump();
+
+        if self.next_token_is(&Token::Semicolon) {
+            self.bump();
+        }
+
+        Some(Stmt::Continue)
+    }
+
     fn parse_expr_stmt(&mut self) -> Option<Stmt> {
         match self.parse_expr(Precedence::Lowest) {
             Some(expr) => {
@@ -233,6 +255,7 @@ impl<'a> Parser<'a> {
             Token::Bang | Token::Minus | Token::Plus => self.parse_prefix_expr(),
             Token::Lparen => self.parse_grouped_expr(),
             Token::If => self.parse_if_expr(),
+            Token::While => self.parse_while_expr(),
             Token::Func => self.parse_func_expr(),
             _ => {
                 self.error_no_prefix_parser();
@@ -482,6 +505,32 @@ impl<'a> Parser<'a> {
             cond: Box::new(cond),
             consequence,
             alternative,
+        })
+    }
+
+
+
+    fn parse_while_expr(&mut self) -> Option<Expr> {
+        if !self.expect_next_token(Token::Lparen) {
+            return None;
+        }
+
+        self.bump();
+
+        let cond = match self.parse_expr(Precedence::Lowest) {
+            Some(expr) => expr,
+            None => return None,
+        };
+
+        if !self.expect_next_token(Token::Rparen) || !self.expect_next_token(Token::Lbrace) {
+            return None;
+        }
+
+        let consequence = self.parse_block_stmt();
+
+        Some(Expr::While {
+            cond: Box::new(cond),
+            consequence,
         })
     }
 

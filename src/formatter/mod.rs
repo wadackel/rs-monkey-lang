@@ -41,6 +41,7 @@ impl Formatter {
                 alternative: _,
             }
             | &Expr::Func { params: _, body: _ } => true,
+            | &Expr::While { cond: _, consequence: _ } => true,
             _ => false,
         }
     }
@@ -101,6 +102,8 @@ impl Formatter {
         match stmt {
             Stmt::Let(ident, expr) => self.format_let_stmt(ident, expr),
             Stmt::Return(expr) => self.format_return_stmt(expr),
+            Stmt::Break => String::from("break;"),
+            Stmt::Continue => String::from("continue;"),
             Stmt::Expr(expr) => {
                 if Self::ignore_semicolon_expr(&expr) {
                     self.format_expr(expr, Precedence::Lowest)
@@ -147,6 +150,7 @@ impl Formatter {
             } => self.format_if_expr(cond, consequence, alternative),
             Expr::Func { params, body } => self.format_func_expr(params, body),
             Expr::Call { func, args } => self.format_call_expr(func, args),
+            Expr::While { cond, consequence } => self.format_while_expr(cond, consequence),
         }
     }
 
@@ -384,6 +388,20 @@ impl Formatter {
         }
 
         format!("{}({})", func_str, args_str)
+    }
+
+    fn format_while_expr(&mut self, cond: Box<Expr>, consequence: BlockStmt) -> String {
+        let cond_str = self.format_expr(*cond, Precedence::Lowest);
+        self.indent += 1;
+
+        let consequence_str = self.format_block_stmt(consequence);
+        self.indent -= 1;
+
+        let result = format!(
+            "while ({}) {{\n{}\n{}}}",
+            cond_str, consequence_str, self.indent_str(0)
+        );
+        result
     }
 }
 
@@ -687,6 +705,30 @@ fn    (y) {y;}
   fn(y) {
     y;
   }
+}"#,
+            ),
+        ];
+
+        for (input, expect) in tests {
+            assert_eq!(String::from(expect), format(input));
+        }
+    }
+
+    #[test]
+    fn test_while_expr() {
+        let tests = vec![
+            (
+                "while (  x ){     break}",
+                r#"while (x) {
+  break;
+}"#,
+            ),
+            (
+                r#"while   (x)        {
+continue
+}"#,
+                r#"while (x) {
+  continue;
 }"#,
             ),
         ];

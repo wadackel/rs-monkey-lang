@@ -73,6 +73,26 @@ impl Evaluator {
         result
     }
 
+    fn eval_block_stmt_with_continue_and_break_statement(&mut self, stmts: BlockStmt) -> Option<Object> {
+        let mut result = None;
+
+        for stmt in stmts {
+            if stmt == Stmt::Blank {
+                continue;
+            }
+
+            match self.eval_stmt(stmt) {
+                Some(Object::ReturnValue(value)) => return Some(Object::ReturnValue(value)),
+                Some(Object::BreakStatement) => return Some(Object::BreakStatement),
+                Some(Object::ContinueStatement) => return Some(Object::ContinueStatement),
+                Some(Object::Error(msg)) => return Some(Object::Error(msg)),
+                obj => result = obj,
+            }
+        }
+
+        result
+    }
+
     fn eval_stmt(&mut self, stmt: Stmt) -> Option<Object> {
         match stmt {
             Stmt::Let(ident, expr) => {
@@ -88,6 +108,8 @@ impl Evaluator {
                     None
                 }
             }
+            Stmt::Break => Some(Object::BreakStatement),
+            Stmt::Continue => Some(Object::ContinueStatement),
             Stmt::Expr(expr) => self.eval_expr(expr),
             Stmt::Return(expr) => {
                 let value = match self.eval_expr(expr) {
@@ -136,6 +158,7 @@ impl Evaluator {
                 consequence,
                 alternative,
             } => self.eval_if_expr(*cond, consequence, alternative),
+            Expr::While { cond, consequence } => self.eval_while_expr(&*cond, consequence),
             Expr::Func { params, body } => Some(Object::Func(params, body, Rc::clone(&self.env))),
             Expr::Call { func, args } => Some(self.eval_call_expr(func, args)),
         }
@@ -311,6 +334,37 @@ impl Evaluator {
         } else {
             None
         }
+    }
+
+
+    fn eval_while_expr(&mut self, cond: &Expr, consequence: BlockStmt) -> Option<Object> {
+        let mut result: Option<Object> = None;
+
+        loop {
+            let cond_result = match self.eval_expr(cond.clone()) {
+                Some(cond) => cond,
+                None => break,
+            };
+            if !Self::is_truthy(cond_result.clone()) {
+                break;
+            }
+
+            result = self.eval_block_stmt_with_continue_and_break_statement(consequence.clone());
+            match result {
+                Some(Object::BreakStatement) => {
+                    result = Some(Object::Null);
+                    break;
+                },
+                Some(Object::ContinueStatement) => {
+                    result = Some(Object::Null);
+                    continue;
+                },
+                Some(Object::ReturnValue(value)) => return Some(Object::ReturnValue(value)),
+                _ => {}
+            }
+        }
+
+        result
     }
 
     fn eval_call_expr(&mut self, func: Box<Expr>, args: Vec<Expr>) -> Object {
