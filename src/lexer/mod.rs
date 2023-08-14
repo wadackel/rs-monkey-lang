@@ -102,6 +102,7 @@ impl<'a> Lexer<'a> {
             b'}' => Token::Rbrace,
             b'[' => Token::Lbracket,
             b']' => Token::Rbracket,
+            b'.' => Token::Dot,
             b',' => Token::Comma,
             b';' => Token::Semicolon,
             b':' => Token::Colon,
