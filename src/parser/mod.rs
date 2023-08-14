@@ -66,6 +66,7 @@ impl<'a> Parser<'a> {
             Token::Plus | Token::Minus => Precedence::Sum,
             Token::Slash | Token::Asterisk => Precedence::Product,
             Token::Lbracket => Precedence::Index,
+            Token::Dot => Precedence::Index,
             Token::Lparen => Precedence::Call,
             _ => Precedence::Lowest,
         }
@@ -260,6 +261,10 @@ impl<'a> Parser<'a> {
                     self.bump();
                     left = self.parse_index_expr(left.unwrap());
                 }
+                Token::Dot => {
+                    self.bump();
+                    left = self.parse_dot_access_expr(left.unwrap());
+                }
                 Token::Lparen => {
                     self.bump();
                     left = self.parse_call_expr(left.unwrap());
@@ -435,6 +440,20 @@ impl<'a> Parser<'a> {
         }
 
         Some(Expr::Index(Box::new(left), Box::new(index)))
+    }
+
+    fn parse_dot_access_expr(&mut self, left: Expr) -> Option<Expr> {
+        self.bump();
+
+        match self.parse_ident() {
+            Some(name) => match name {
+                Ident(str) => {
+                    Some(Expr::Index(Box::new(left), Box::new(Expr::Literal(Literal::String(str)))))
+                },
+                _ => return None
+            },
+            None => return None,
+        }
     }
 
     fn parse_grouped_expr(&mut self) -> Option<Expr> {
@@ -834,6 +853,23 @@ return 993322;
                     Box::new(Expr::Literal(Literal::Int(1))),
                     Box::new(Expr::Literal(Literal::Int(1))),
                 )),
+            ))],
+            program
+        );
+    }
+
+    #[test]
+    fn test_dot_access_expr() {
+        let input = "myHash.key";
+
+        let mut parser = Parser::new(Lexer::new(input));
+        let program = parser.parse();
+
+        check_parse_errors(&mut parser);
+        assert_eq!(
+            vec![Stmt::Expr(Expr::Index(
+                Box::new(Expr::Ident(Ident(String::from("myHash")))),
+                Box::new(Expr::Literal(Literal::String(String::from("key")))),
             ))],
             program
         );

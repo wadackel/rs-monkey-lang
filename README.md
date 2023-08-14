@@ -262,6 +262,7 @@ let hash = {
 };
 
 hash["name"];
+hash.name;
 hash["a" + "ge"];
 hash[true];
 hash[99];
